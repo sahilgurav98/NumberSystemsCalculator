@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMath Terminal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #0f0;
+            --dark-green: #051105;
+            --border-green: #1a441a;
+            --glass-bg: rgba(0, 20, 0, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-green);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #001100;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-green);
+            border-radius: 4px;
+        }
+
+        /* Matrix Canvas */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        /* Glassmorphism Container */
+        .cyber-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), inset 0 0 20px rgba(0, 255, 0, 0.1);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #14532d; /* green-900 */
+            padding-bottom: 1rem;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            color: #16a34a; /* green-600 */
+            margin: 0;
+        }
+
+        /* Neon Text Effects */
+        .neon-text {
+            text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green);
+        }
+
+        /* Tabs */
+        .nav-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            background-color: #000;
+            border: 1px solid #14532d;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.5rem;
+            text-align: center;
+            background: transparent;
+            color: var(--neon-green);
+            border: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-active {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        /* Calculator Display */
+        .calc-screen {
+            background-color: #000;
+            border: 1px solid #22c55e;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+            box-shadow: inset 0 0 20px rgba(0, 20, 0, 1);
+        }
+
+        .calc-history {
+            text-align: right;
+            color: #166534;
+            font-size: 0.75rem;
+            min-height: 1rem;
+        }
+
+        .calc-main {
+            text-align: right;
+            font-size: 1.875rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        /* Base Selection */
+        .base-selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .mode-indicator {
+            color: #054405;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .mode-indicator.active {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green);
+            border-bottom: 2px solid var(--neon-green);
+        }
+
+        /* Grid Layout */
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        .key-btn {
+            position: relative;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            font-size: 1.125rem;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-green);
+            background: var(--dark-green);
+            border: 1px solid var(--border-green);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.1s;
+        }
+
+        .key-btn:active {
+            transform: scale(0.95);
+            background: var(--neon-green);
+            color: #000;
+        }
+        
+        .key-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #333;
+            color: #333;
+        }
+
+        .key-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .key-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Special Buttons */
+        .btn-ac {
+            background: rgba(127, 29, 29, 0.3);
+            border-color: #991b1b;
+            color: #f87171;
+        }
+        .btn-ac:hover {
+            color: #fecaca;
+        }
+        
+        .btn-op {
+            color: #facc15;
+        }
+
+        .btn-eq {
+            background: rgba(20, 83, 45, 0.4);
+            color: #86efac;
+            border-color: #22c55e;
+        }
+
+        .span-2 {
+            grid-column: span 2;
+        }
+
+        /* Converter Section */
+        .converter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .converter-label {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #15803d;
+            font-size: 0.875rem;
+            border: 1px dashed #14532d;
+            padding: 0.5rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: #16a34a;
+            margin-bottom: 0.25rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #14532d;
+            color: var(--neon-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.125rem;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .input-badge {
+            position: absolute;
+            right: 0.75rem;
+            top: 2.25rem;
+            color: #166534;
+            font-size: 0.75rem;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            background: transparent;
+            border: 1px solid #166534;
+            color: #16a34a;
+            border-radius: 0.25rem;
+            font-family: 'Share Tech Mono', monospace;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: rgba(20, 83, 45, 0.2);
+        }
+
+        /* Footer Credit */
+        .footer-credit {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #15803d;
+            border-top: 1px solid #14532d;
+            padding-top: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* CRT Scanline effect */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Effects -->
+    <canvas id="matrixCanvas"></canvas>
+    <div class="scanlines"></div>
+
+    <!-- Main App Container -->
+    <div class="cyber-container">
+        
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 class="title neon-text"><i class="fas fa-microchip" style="margin-right: 0.5rem;"></i>CYBER.MATH</h1>
+                <p class="subtitle">SYSTEM STATUS: ONLINE</p>
+            </div>
+            <div style="text-align: right;">
+                <span id="clock" style="font-size: 0.875rem;">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button onclick="switchTab('calculator')" id="tab-calculator" class="tab-btn tab-active">
+                CALCULATOR
+            </button>
+            <button onclick="switchTab('converter')" id="tab-converter" class="tab-btn">
+                CONVERTER
+            </button>
+        </div>
+
+        <!-- CALCULATOR SECTION -->
+        <div id="view-calculator">
+            
+            <!-- Calculator Display -->
+            <div class="calc-screen">
+                <div class="calc-history" id="calc-history"></div>
+                <div class="calc-main neon-text" id="calc-display">0</div>
+            </div>
+
+            <!-- Base Selection -->
+            <div class="base-selector">
+                <div onclick="setBase(16)" class="mode-indicator" id="mode-hex">HEX</div>
+                <div onclick="setBase(10)" class="mode-indicator active" id="mode-dec">DEC</div>
+                <div onclick="setBase(8)" class="mode-indicator" id="mode-oct">OCT</div>
+                <div onclick="setBase(2)" class="mode-indicator" id="mode-bin">BIN</div>
+            </div>
+
+            <!-- Keypad Grid -->
+            <div class="keypad-grid">
+                <!-- Row 1 -->
+                <button class="key-btn" data-val="D">D</button>
+                <button class="key-btn" data-val="E">E</button>
+                <button class="key-btn" data-val="F">F</button>
+                <button class="key-btn btn-ac" onclick="clearCalc()">AC</button>
+
+                <!-- Row 2 -->
+                <button class="key-btn" data-val="A">A</button>
+                <button class="key-btn" data-val="B">B</button>
+                <button class="key-btn" data-val="C">C</button>
+                <button class="key-btn btn-op" onclick="setOp('/')">÷</button>
+
+                <!-- Row 3 -->
+                <button class="key-btn" data-val="7">7</button>
+                <button class="key-btn" data-val="8">8</button>
+                <button class="key-btn" data-val="9">9</button>
+                <button class="key-btn btn-op" onclick="setOp('*')">×</button>
+
+                <!-- Row 4 -->
+                <button class="key-btn" data-val="4">4</button>
+                <button class="key-btn" data-val="5">5</button>
+                <button class="key-btn" data-val="6">6</button>
+                <button class="key-btn btn-op" onclick="setOp('-')">-</button>
+
+                <!-- Row 5 -->
+                <button class="key-btn" data-val="1">1</button>
+                <button class="key-btn" data-val="2">2</button>
+                <button class="key-btn" data-val="3">3</button>
+                <button class="key-btn btn-op" onclick="setOp('+')">+</button>
+
+                <!-- Row 6 -->
+                <button class="key-btn span-2" data-val="0">0</button>
+                <button class="key-btn" onclick="backspace()"><i class="fas fa-backspace"></i></button>
+                <button class="key-btn btn-eq" onclick="calculate()">=</button>
+            </div>
+        </div>
+
+        <!-- CONVERTER SECTION -->
+        <div id="view-converter" class="converter-container hidden">
+            <div class="converter-label">
+                <i class="fas fa-sync fa-spin" style="margin-right: 0.5rem;"></i>REAL-TIME TRANSLATION
+            </div>
+
+            <div class="input-group">
+                <label>DECIMAL (Base 10)</label>
+                <input type="text" id="conv-dec" placeholder="0" oninput="convertFrom('dec')">
+                <div class="input-badge">DEC</div>
+            </div>
+
+            <div class="input-group">
+                <label>BINARY (Base 2)</label>
+                <input type="text" id="conv-bin" placeholder="0" oninput="convertFrom('bin')">
+                <div class="input-badge">BIN</div>
+            </div>
+
+            <div class="input-group">
+                <label>HEXADECIMAL (Base 16)</label>
+                <input type="text" id="conv-hex" style="text-transform: uppercase;" placeholder="0" oninput="convertFrom('hex')">
+                <div class="input-badge">HEX</div>
+            </div>
+
+            <div class="input-group">
+                <label>OCTAL (Base 8)</label>
+                <input type="text" id="conv-oct" placeholder="0" oninput="convertFrom('oct')">
+                <div class="input-badge">OCT</div>
+            </div>
+
+            <button onclick="clearConverter()" class="reset-btn">
+                RESET DATA STREAMS
+            </button>
+        </div>
+
+        <!-- Footer Credit -->
+        <div class="footer-credit">
+            Created by Sahil Gurav using gemini 3.0
+        </div>
+
+    </div>
+
+    <script>
+        /* --- MATRIX BACKGROUND ANIMATION --- */
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const letters = '01';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+
+        /* --- UI LOGIC --- */
+        // Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString();
+        }, 1000);
+
+        // Tabs
+        function switchTab(tab) {
+            const calcView = document.getElementById('view-calculator');
+            const convView = document.getElementById('view-converter');
+            const calcBtn = document.getElementById('tab-calculator');
+            const convBtn = document.getElementById('tab-converter');
+
+            if (tab === 'calculator') {
+                calcView.classList.remove('hidden');
+                convView.classList.add('hidden');
+                calcBtn.classList.add('tab-active');
+                convBtn.classList.remove('tab-active');
+            } else {
+                calcView.classList.add('hidden');
+                convView.classList.remove('hidden');
+                calcBtn.classList.remove('tab-active');
+                convBtn.classList.add('tab-active');
+            }
+        }
+
+
+        /* --- CALCULATOR LOGIC --- */
+        let currentBase = 10;
+        let currentInput = '0';
+        let previousInput = null;
+        let operator = null;
+        let newNumberStarted = false;
+
+        // Add event listeners to keys
+        document.querySelectorAll('.key-btn[data-val]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if(btn.disabled) return;
+                inputDigit(btn.getAttribute('data-val'));
+            });
+        });
+
+        function updateDisplay() {
+            document.getElementById('calc-display').innerText = currentInput;
+        }
+
+        function setBase(base) {
+            // Convert current input to new base before switching if possible
+            try {
+                const decValue = parseInt(currentInput, currentBase);
+                if (!isNaN(decValue)) {
+                    currentInput = decValue.toString(base).toUpperCase();
+                } else {
+                    currentInput = '0';
+                }
+            } catch (e) {
+                currentInput = '0';
+            }
+
+            currentBase = base;
+            
+            // UI Updates
+            document.querySelectorAll('.mode-indicator').forEach(el => el.classList.remove('active'));
+            if(base === 16) document.getElementById('mode-hex').classList.add('active');
+            if(base === 10) document.getElementById('mode-dec').classList.add('active');
+            if(base === 8)  document.getElementById('mode-oct').classList.add('active');
+            if(base === 2)  document.getElementById('mode-bin').classList.add('active');
+
+            updateKeypadState();
+            updateDisplay();
+        }
+
+        function updateKeypadState() {
+            const allKeys = document.querySelectorAll('.key-btn');
+            
+            allKeys.forEach(btn => {
+                const val = btn.getAttribute('data-val');
+                if (!val) return; // Skip operator buttons
+
+                let disabled = false;
+                const numVal = parseInt(val, 16);
+
+                // Disable based on base
+                if (currentBase === 2 && numVal >= 2) disabled = true;
+                if (currentBase === 8 && numVal >= 8) disabled = true;
+                if (currentBase === 10 && (isNaN(parseInt(val)) || numVal >= 10)) disabled = true; 
+                // Base 16 enables all
+
+                btn.disabled = disabled;
+            });
+        }
+
+        function inputDigit(digit) {
+            if (currentInput === '0' || newNumberStarted) {
+                currentInput = digit;
+                newNumberStarted = false;
+            } else {
+                currentInput += digit;
+            }
+            updateDisplay();
+        }
+
+        function setOp(op) {
+            if (operator !== null && !newNumberStarted) {
+                calculate();
+            }
+            previousInput = currentInput;
+            operator = op;
+            newNumberStarted = true;
+            let opSymbol = op === '*' ? '×' : op === '/' ? '÷' : op;
+            document.getElementById('calc-history').innerText = `${currentInput} (${getBaseName()}) ${opSymbol}`;
+        }
+
+        function getBaseName() {
+            if(currentBase === 16) return 'HEX';
+            if(currentBase === 8) return 'OCT';
+            if(currentBase === 2) return 'BIN';
+            return 'DEC';
+        }
+
+        function calculate() {
+            if (operator === null || previousInput === null) return;
+
+            // Convert everything to Decimal for Math
+            const num1 = parseInt(previousInput, currentBase);
+            const num2 = parseInt(currentInput, currentBase);
+            let result = 0;
+
+            switch (operator) {
+                case '+': result = num1 + num2; break;
+                case '-': result = num1 - num2; break;
+                case '*': result = num1 * num2; break;
+                case '/': 
+                    if (num2 === 0) {
+                        alert("SYSTEM ERROR: DIV BY ZERO");
+                        clearCalc();
+                        return;
+                    }
+                    result = Math.floor(num1 / num2); // Integer division preference for non-float calc
+                    break;
+            }
+
+            // Convert back to current base
+            currentInput = result.toString(currentBase).toUpperCase();
+            operator = null;
+            previousInput = null;
+            newNumberStarted = true;
+            
+            document.getElementById('calc-history').innerText = '';
+            updateDisplay();
+        }
+
+        function clearCalc() {
+            currentInput = '0';
+            previousInput = null;
+            operator = null;
+            document.getElementById('calc-history').innerText = '';
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (currentInput.length === 1) {
+                currentInput = '0';
+            } else {
+                currentInput = currentInput.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        // Initialize keypad state
+        updateKeypadState();
+
+
+        /* --- CONVERTER LOGIC --- */
+        function convertFrom(type) {
+            let val = document.getElementById('conv-' + type).value;
+            
+            // Validation/Cleaning based on type
+            if (type === 'bin') val = val.replace(/[^01]/g, '');
+            if (type === 'oct') val = val.replace(/[^0-7]/g, '');
+            if (type === 'dec') val = val.replace(/[^0-9]/g, '');
+            if (type === 'hex') val = val.replace(/[^0-9a-fA-F]/g, '');
+
+            // Update the inputs value if it was cleaned
+            if (document.getElementById('conv-' + type).value !== val) {
+                document.getElementById('conv-' + type).value = val;
+            }
+
+            if (val === '') {
+                if(val === '') {
+                   // Optional: clear others
+                   return; 
+                }
+            }
+
+            let decValue;
+
+            // Parse to Decimal first
+            if (type === 'dec') decValue = parseInt(val, 10);
+            if (type === 'hex') decValue = parseInt(val, 16);
+            if (type === 'oct') decValue = parseInt(val, 8);
+            if (type === 'bin') decValue = parseInt(val, 2);
+
+            if (isNaN(decValue)) {
+                return; // Invalid input handling
+            }
+
+            // Update others
+            if (type !== 'dec') document.getElementById('conv-dec').value = decValue.toString(10);
+            if (type !== 'hex') document.getElementById('conv-hex').value = decValue.toString(16).toUpperCase();
+            if (type !== 'oct') document.getElementById('conv-oct').value = decValue.toString(8);
+            if (type !== 'bin') document.getElementById('conv-bin').value = decValue.toString(2);
+        }
+
+        function clearConverter() {
+            document.getElementById('conv-dec').value = '';
+            document.getElementById('conv-hex').value = '';
+            document.getElementById('conv-oct').value = '';
+            document.getElementById('conv-bin').value = '';
+        }
+
+    </script>
+</body>
+</html>
